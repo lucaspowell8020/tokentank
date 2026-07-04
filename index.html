@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claude Gauge</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <p class="eyebrow">Claude Gauge</p>
+
+      <section class="gauges">
+        <div class="gauge" id="gauge-5h">
+          <svg viewBox="0 0 120 120">
+            <circle class="track" cx="60" cy="60" r="50" />
+            <circle class="fill" cx="60" cy="60" r="50" id="arc-5h" />
+          </svg>
+          <div class="gauge-label">
+            <span class="pct" id="pct-5h">--%</span>
+            <span class="cap">5-hour window</span>
+          </div>
+        </div>
+        <div class="gauge" id="gauge-wk">
+          <svg viewBox="0 0 120 120">
+            <circle class="track" cx="60" cy="60" r="50" />
+            <circle class="fill" cx="60" cy="60" r="50" id="arc-wk" />
+          </svg>
+          <div class="gauge-label">
+            <span class="pct" id="pct-wk">--%</span>
+            <span class="cap">This week</span>
+          </div>
+        </div>
+      </section>
+      <p class="note" id="calibration-note">Ceilings are estimates until your first observed limit.</p>
+
+      <section class="stats">
+        <div class="stat">
+          <span class="stat-label">Burn rate</span>
+          <span class="stat-val" id="burn">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Today</span>
+          <span class="stat-val" id="today">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Last 30 days</span>
+          <span class="stat-val" id="month">--</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Plan multiple</span>
+          <span class="stat-val" id="mult">--</span>
+        </div>
+      </section>
+
+      <footer>
+        <span id="plan-line">plan: not set</span>
+        <a href="https://agentshortlist.com/claude-usage" target="_blank" rel="noopener"
+          >agentshortlist.com</a
+        >
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
