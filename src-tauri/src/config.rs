@@ -81,7 +81,7 @@ pub struct GaugeSettings {
 }
 
 fn settings_path() -> Option<PathBuf> {
-    dirs::config_dir().map(|d| d.join("claude-gauge").join("settings.json"))
+    dirs::config_dir().map(|d| d.join("tokentank").join("settings.json"))
 }
 
 pub fn load_settings() -> GaugeSettings {

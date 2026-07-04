@@ -1,7 +1,7 @@
 [package]
-name = "claude-gauge"
-version = "0.1.0"
-description = "A gas gauge for Claude Code - live usage in your tray. Local only, nothing uploaded."
+name = "tokentank"
+version = "0.3.0"
+description = "TokenTank - the fuel gauge for your AI tools. Remaining usage and reset countdowns in your tray. Local only, nothing uploaded."
 authors = ["Lucas Powell"]
 license = "MIT"
 edition = "2021"

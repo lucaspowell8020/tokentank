@@ -41,7 +41,7 @@ pub struct Calibration {
 }
 
 fn calibration_path() -> Option<PathBuf> {
-    dirs::config_dir().map(|d| d.join("claude-gauge").join("calibration.json"))
+    dirs::config_dir().map(|d| d.join("tokentank").join("calibration.json"))
 }
 
 impl Calibration {

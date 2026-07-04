@@ -1,4 +1,4 @@
-"""Generate the Claude Gauge source icon (1024x1024 PNG) with stdlib only.
+"""Generate the TokenTank source icon (1024x1024 PNG) with stdlib only.
 Vermillion rounded square, paper fuel-tank glyph, three-quarter fill.
 Run once, then: npx tauri icon src-tauri/icon-src.png
 """

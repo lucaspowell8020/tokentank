@@ -1,6 +1,8 @@
-# Claude Gauge
+# TokenTank
 
-**A gas gauge for Claude Code, in your system tray.** Live fuel levels for your 5-hour window and weekly quota, your burn rate in API-equivalent dollars per hour, and your plan multiple — measured from your local transcripts, updated every 15 seconds.
+**The fuel gauge for your AI tools, in your system tray.** Live fuel levels for your usage windows, a countdown to the next reset, your burn rate in API-equivalent dollars per hour, and your plan multiple — measured from local transcripts, updated every 15 seconds.
+
+Claude Code is the first supported tool; OpenAI Codex, Gemini CLI, and others are on the roadmap (they all write local session logs — same pattern, different parsers).
 
 Everything runs locally. It reads `~/.claude/projects` and nothing else. No network calls, no telemetry, no account.
 

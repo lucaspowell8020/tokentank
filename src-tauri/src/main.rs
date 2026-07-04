@@ -1,4 +1,4 @@
-// Claude Gauge — a gas gauge for Claude Code, in your tray.
+// TokenTank — a gas gauge for Claude Code, in your tray.
 // Reads local transcripts only. No network calls, no telemetry.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -81,7 +81,7 @@ fn tooltip(snap: &state::Snapshot) -> String {
         Some(reset) => format!("week: {:.0}% left, resets in {}", week_pct, fmt_dur(reset - now)),
         None => format!("week: {week_pct:.0}% left"),
     };
-    format!("Claude Gauge — {session} · {week} · ${:.2}/h", snap.burn_per_hour)
+    format!("TokenTank — {session} · {week} · ${:.2}/h", snap.burn_per_hour)
 }
 
 fn push_update(app: &tauri::AppHandle, snap: &state::Snapshot) {
@@ -105,14 +105,14 @@ fn main() {
         .invoke_handler(tauri::generate_handler![get_state, needs_setup, save_setup])
         .setup(|app| {
             // Tray with menu
-            let open = MenuItem::with_id(app, "open", "Open Claude Gauge", true, None::<&str>)?;
+            let open = MenuItem::with_id(app, "open", "Open TokenTank", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &quit])?;
 
             let (rgba, w, h) = icon::render(1.0);
             TrayIconBuilder::with_id("gauge")
                 .icon(Image::new_owned(rgba, w, h))
-                .tooltip("Claude Gauge — reading transcripts…")
+                .tooltip("TokenTank — reading transcripts…")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
@@ -184,7 +184,7 @@ fn main() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while building Claude Gauge")
+        .expect("error while building TokenTank")
         .run(|_app, event| {
             // Keep running when the window is hidden; only exit on explicit quit.
             if let tauri::RunEvent::ExitRequested { code, api, .. } = event {
