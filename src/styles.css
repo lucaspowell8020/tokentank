@@ -24,7 +24,7 @@ body {
 }
 
 #app {
-  padding: 18px 20px 14px;
+  padding: 16px 20px 14px;
 }
 
 .eyebrow {
@@ -33,68 +33,88 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--vermillion);
-  margin: 0 0 14px;
+  margin: 0 0 2px;
 }
 
-.gauges {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+.tagline {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin: 0 0 10px;
 }
 
-.gauge {
-  position: relative;
+/* ── 5-hour dial ─────────────────────────────────────── */
+
+.dial-wrap {
   text-align: center;
 }
 
-.gauge svg {
-  width: 100%;
+#dial {
+  width: 82%;
   height: auto;
-  transform: rotate(-90deg);
+  display: block;
+  margin: 0 auto;
 }
 
-.gauge .track {
+.dial-track {
   fill: none;
   stroke: var(--rule);
-  stroke-width: 10;
+  stroke-width: 14;
 }
 
-.gauge .fill {
+.dial-zone {
   fill: none;
-  stroke: var(--ink);
-  stroke-width: 10;
-  stroke-linecap: butt;
-  stroke-dasharray: 314.16; /* 2*pi*50 */
-  stroke-dashoffset: 314.16;
-  transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;
+  stroke-width: 14;
 }
 
-.gauge .fill.warn {
-  stroke: var(--amber);
-}
-
-.gauge .fill.low {
+.dial-zone.low {
   stroke: var(--vermillion);
 }
 
-.gauge-label {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
+.dial-zone.warn {
+  stroke: var(--amber);
+  opacity: 0.55;
+}
+
+.dial-ticks line {
+  stroke: var(--paper);
+  stroke-width: 3;
+}
+
+.needle-line {
+  stroke: var(--ink);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+#needle {
+  /* No transform-origin here: the rotate(a cx cy) attribute already
+     carries the pivot; a CSS origin would apply it twice. */
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.needle-hub {
+  fill: var(--ink);
+}
+
+.ef {
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 13px;
+  fill: var(--ink-muted);
+}
+
+.dial-reading {
+  margin-top: 2px;
 }
 
 .pct {
   font-family: Georgia, "Fraunces", serif;
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 500;
   color: var(--ink);
 }
 
-.cap {
+.pct-cap {
+  display: block;
   font-family: "IBM Plex Mono", Consolas, monospace;
   font-size: 10px;
   text-transform: uppercase;
@@ -102,19 +122,108 @@ body {
   color: var(--ink-muted);
 }
 
-.note {
+.countdown {
+  font-family: "IBM Plex Mono", Consolas, monospace;
   font-size: 12px;
+  color: var(--ink-soft);
+  margin: 6px 0 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown .hot {
+  color: var(--vermillion);
+}
+
+/* ── Weekly tank bar ─────────────────────────────────── */
+
+.week-wrap {
+  margin-top: 16px;
+}
+
+.week-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 5px;
+}
+
+.week-label {
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--ink-muted);
-  margin: 10px 0 14px;
+}
+
+.week-pct {
+  font-family: Georgia, "Fraunces", serif;
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.tank {
+  position: relative;
+  height: 24px;
+  border: 2px solid var(--ink);
+  background: var(--paper-dark);
+  overflow: hidden;
+}
+
+.tank-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: var(--ink);
+  transition: width 0.8s ease, background 0.3s ease;
+}
+
+.tank-fill.warn {
+  background: var(--amber);
+}
+
+.tank-fill.low {
+  background: var(--vermillion);
+}
+
+.tank-tick {
+  position: absolute;
+  top: 0;
+  bottom: 14px;
+  width: 2px;
+  background: var(--paper);
+  opacity: 0.8;
+}
+
+.tank-ef {
+  display: flex;
+  justify-content: space-between;
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}
+
+.week-wrap .countdown {
+  text-align: left;
+  margin-top: 4px;
+}
+
+/* ── Shared ──────────────────────────────────────────── */
+
+.note {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin: 12px 0;
   text-align: center;
 }
 
 .stats {
   border-top: 1px solid var(--rule);
-  padding-top: 12px;
+  padding-top: 10px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px 16px;
+  gap: 8px 16px;
 }
 
 .stat {
@@ -132,13 +241,13 @@ body {
 
 .stat-val {
   font-family: Georgia, "Fraunces", serif;
-  font-size: 20px;
+  font-size: 19px;
   color: var(--ink);
 }
 
 footer {
-  margin-top: 16px;
-  padding-top: 10px;
+  margin-top: 12px;
+  padding-top: 8px;
   border-top: 1px solid var(--rule);
   display: flex;
   justify-content: space-between;

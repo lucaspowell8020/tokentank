@@ -3,7 +3,7 @@
 
 use crate::config::Config;
 use crate::parser::{self, Event, Offsets};
-use chrono::{Local, TimeZone};
+use chrono::{Datelike, Duration as ChronoDuration, Local, TimeZone};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -14,8 +14,15 @@ const WEEK: i64 = 7 * 24 * 3600;
 pub struct Snapshot {
     pub five_h_cost: f64,
     pub five_h_ceiling: f64,
+    /// Epoch seconds when the current 5-hour session block ends.
+    /// None when no session is active (next message starts a fresh block).
+    pub five_h_reset: Option<i64>,
+    pub session_active: bool,
     pub weekly_cost: f64,
     pub weekly_ceiling: f64,
+    /// Epoch seconds of the next weekly quota reset (needs weekly_reset in
+    /// config); None means the weekly gauge is a rolling 7-day approximation.
+    pub weekly_reset: Option<i64>,
     pub burn_per_hour: f64,
     pub today_cost: f64,
     pub month_cost: f64,
@@ -114,9 +121,61 @@ impl Gauge {
             .sum()
     }
 
+    /// The current 5-hour session block, mirroring how Claude's session
+    /// windows behave: a block opens with the first message after the
+    /// previous block expires and lasts five hours. Returns (start, end)
+    /// when a block is active at `now`.
+    fn session_block(&self, now: i64) -> Option<(i64, i64)> {
+        let mut block_start: Option<i64> = None;
+        for e in &self.events {
+            if e.ts > now {
+                break;
+            }
+            match block_start {
+                None => block_start = Some(e.ts),
+                Some(bs) if e.ts >= bs + FIVE_H => block_start = Some(e.ts),
+                _ => {}
+            }
+        }
+        block_start.and_then(|bs| (now < bs + FIVE_H).then_some((bs, bs + FIVE_H)))
+    }
+
+    /// The active weekly quota window. With a configured anchor ("wed 05:59")
+    /// this is the fixed window Claude actually uses; otherwise a rolling
+    /// 7-day approximation with no known reset instant.
+    fn weekly_window(&self, now: i64) -> (i64, Option<i64>) {
+        if let Some((weekday, h, m)) = self.cfg.weekly_reset {
+            let now_local = Local
+                .timestamp_opt(now, 0)
+                .single()
+                .unwrap_or_else(Local::now);
+            for days_back in 0..8 {
+                let day = now_local.date_naive() - ChronoDuration::days(days_back);
+                if day.weekday() != weekday {
+                    continue;
+                }
+                let Some(anchor) = day
+                    .and_hms_opt(h, m, 0)
+                    .and_then(|ndt| Local.from_local_datetime(&ndt).single())
+                else {
+                    continue;
+                };
+                let ts = anchor.timestamp();
+                if ts <= now {
+                    return (ts, Some(ts + WEEK));
+                }
+            }
+        }
+        (now - WEEK, None)
+    }
+
     pub fn snapshot(&self, now: i64) -> Snapshot {
-        let five_h_cost = self.cost_between(now - FIVE_H, now);
-        let weekly_cost = self.cost_between(now - WEEK, now);
+        let block = self.session_block(now);
+        let five_h_cost = block.map_or(0.0, |(start, _)| self.cost_between(start - 1, now));
+        let five_h_reset = block.map(|(_, end)| end);
+
+        let (week_start, weekly_reset) = self.weekly_window(now);
+        let weekly_cost = self.cost_between(week_start, now);
         let burn_per_hour = self.cost_between(now - 3600, now);
         let month_cost = self.cost_between(now - 30 * 24 * 3600, now);
 
@@ -153,8 +212,11 @@ impl Gauge {
         Snapshot {
             five_h_cost,
             five_h_ceiling,
+            five_h_reset,
+            session_active: block.is_some(),
             weekly_cost,
             weekly_ceiling,
+            weekly_reset,
             burn_per_hour,
             today_cost,
             month_cost,

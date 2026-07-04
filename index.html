@@ -9,30 +9,56 @@
   <body>
     <main id="app">
       <p class="eyebrow">Claude Gauge</p>
+      <p class="tagline">Remaining usage, estimated from your local transcripts.</p>
 
-      <section class="gauges">
-        <div class="gauge" id="gauge-5h">
-          <svg viewBox="0 0 120 120">
-            <circle class="track" cx="60" cy="60" r="50" />
-            <circle class="fill" cx="60" cy="60" r="50" id="arc-5h" />
-          </svg>
-          <div class="gauge-label">
-            <span class="pct" id="pct-5h">--%</span>
-            <span class="cap">5-hour window</span>
-          </div>
+      <!-- 5-hour session tank: automotive dial -->
+      <section class="dial-wrap">
+        <svg viewBox="0 0 240 132" id="dial">
+          <!-- track -->
+          <path d="M 28 120 A 92 92 0 0 1 212 120" class="dial-track" />
+          <!-- zones: E-side quarter vermillion, next quarter amber -->
+          <path d="M 28 120 A 92 92 0 0 1 54.9 54.9" class="dial-zone low" />
+          <path d="M 54.9 54.9 A 92 92 0 0 1 120 28" class="dial-zone warn" />
+          <!-- ticks at E, 1/4, 1/2, 3/4, F -->
+          <g class="dial-ticks">
+            <line x1="14" y1="120" x2="42" y2="120" />
+            <line x1="45" y1="45" x2="64.8" y2="64.8" />
+            <line x1="120" y1="14" x2="120" y2="42" />
+            <line x1="195" y1="45" x2="175.2" y2="64.8" />
+            <line x1="226" y1="120" x2="198" y2="120" />
+          </g>
+          <!-- needle -->
+          <g id="needle">
+            <line x1="120" y1="120" x2="196" y2="120" class="needle-line" />
+          </g>
+          <circle cx="120" cy="120" r="9" class="needle-hub" />
+          <text x="14" y="131" class="ef">E</text>
+          <text x="219" y="131" class="ef">F</text>
+        </svg>
+        <div class="dial-reading">
+          <span class="pct" id="pct-5h">--%</span>
+          <span class="pct-cap">of your 5-hour tank left</span>
         </div>
-        <div class="gauge" id="gauge-wk">
-          <svg viewBox="0 0 120 120">
-            <circle class="track" cx="60" cy="60" r="50" />
-            <circle class="fill" cx="60" cy="60" r="50" id="arc-wk" />
-          </svg>
-          <div class="gauge-label">
-            <span class="pct" id="pct-wk">--%</span>
-            <span class="cap">This week</span>
-          </div>
-        </div>
+        <p class="countdown" id="cd-5h">reading transcripts…</p>
       </section>
-      <p class="note" id="calibration-note">Ceilings are estimates until your first observed limit.</p>
+
+      <!-- Weekly tank: horizontal fuel bar -->
+      <section class="week-wrap">
+        <div class="week-head">
+          <span class="week-label">Weekly tank</span>
+          <span class="week-pct" id="pct-wk">--%</span>
+        </div>
+        <div class="tank">
+          <div class="tank-fill" id="tank-fill"></div>
+          <span class="tank-tick" style="left: 25%"></span>
+          <span class="tank-tick" style="left: 50%"></span>
+          <span class="tank-tick" style="left: 75%"></span>
+        </div>
+        <div class="tank-ef"><span>E</span><span>F</span></div>
+        <p class="countdown" id="cd-wk"></p>
+      </section>
+
+      <p class="note" id="calibration-note"></p>
 
       <section class="stats">
         <div class="stat">

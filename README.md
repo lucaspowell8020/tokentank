@@ -6,12 +6,20 @@ Everything runs locally. It reads `~/.claude/projects` and nothing else. No netw
 
 ## What the gauge shows
 
-- **Tray icon** — a fuel tank that drains as you consume your 5-hour window or weekly quota (whichever is tighter). White = plenty, amber = under half, vermillion = under a quarter.
-- **Click the icon** for the popover: both gauges, current burn rate ($/hour), today's total, last 30 days, and your plan multiple ("29.9× the sticker").
+- **Tray icon** — a fuel tank that drains as you consume your 5-hour session or weekly quota (whichever is tighter). White = plenty, amber = under half, vermillion = under a quarter. Hover for percentages and reset countdowns.
+- **Click the icon** for the popover: an E-to-F fuel dial for the 5-hour session with a **live countdown to the reset**, a horizontal tank for the week with its refill time, burn rate ($/hour), today's total, last 30 days, and your plan multiple.
+
+## How the windows work
+
+- **5-hour session**: mirrors Claude's session blocks — a block opens with your first message after the previous one expires and lasts five hours. The countdown is to the end of the current block. No active block = full tank.
+- **Weekly quota**: Claude resets weekly at a fixed time (shown in the Claude app under Settings → Usage, e.g. "Resets Wed 5:59 AM"). Put that in config as `weekly_reset` and the gauge tracks the real window; without it, it falls back to a rolling 7-day estimate.
 
 ## How it knows the ceiling
 
-Anthropic doesn't publish subscription quotas as numbers, so the gauge starts with clearly-labelled estimates per plan. Then it **self-calibrates**: Claude Code records a local notice every time you actually hit a limit, and the gauge learns your real ceiling from the consumption that preceded each one. The longer you run it, the more accurate it gets. Estimated ceilings can also be pinned manually in config.
+Anthropic doesn't publish subscription quotas as numbers, so the gauge starts with clearly-labelled estimates per plan. Two ways it gets accurate:
+
+1. **Self-calibration** — Claude Code records a local notice every time you actually hit a limit; the gauge learns your real ceiling from the consumption that preceded each one.
+2. **Panel calibration** — open the Claude app's Settings → Usage panel, note the "% used" it shows, and pin your ceilings: `ceiling = current API-equivalent spend ÷ fraction used`. Set the result in `gauge_ceilings`.
 
 ## Config
 
@@ -19,12 +27,13 @@ Reads the same `~/.claude/claude_usage.config.json` as the [usage dashboard](htt
 
 ```json
 {
-  "plan": "max_20x",
-  "gauge_ceilings": { "five_h": 300.0, "weekly": 2000.0 }
+  "plan": "max_5x",
+  "weekly_reset": "wed 05:59",
+  "gauge_ceilings": { "five_h": 265.0, "weekly": 2200.0 }
 }
 ```
 
-`plan` is one of `pro`, `max_5x`, `max_20x`, `api`. `gauge_ceilings` (optional) pins the estimated ceilings in API-equivalent dollars.
+`plan` is one of `pro`, `max_5x`, `max_20x`, `api`. `weekly_reset` is the local day/time from the Claude app's Usage panel. `gauge_ceilings` (optional) pins the estimated ceilings in API-equivalent dollars.
 
 ## Development
 

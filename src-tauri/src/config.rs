@@ -24,6 +24,9 @@ pub struct RawConfig {
     /// Optional gauge overrides: {"five_h": 300.0, "weekly": 2000.0}
     #[serde(default)]
     pub gauge_ceilings: HashMap<String, f64>,
+    /// Weekly quota anchor, e.g. "wed 05:59" (local time). Copy it from the
+    /// Claude app's Settings -> Usage panel ("Resets Wed 5:59 AM").
+    pub weekly_reset: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -34,9 +37,11 @@ pub struct Config {
     pub default_tier: String,
     pub cache_write_mult: f64,
     pub cache_read_mult: f64,
-    /// Estimated API-equivalent-$ ceilings (5-hour window, rolling week).
+    /// Estimated API-equivalent-$ ceilings (5-hour window, weekly quota).
     pub five_h_ceiling: f64,
     pub weekly_ceiling: f64,
+    /// Weekly quota anchor: (weekday, hour, minute) in local time.
+    pub weekly_reset: Option<(chrono::Weekday, u32, u32)>,
 }
 
 fn default_pricing() -> HashMap<String, TierPrice> {
@@ -49,17 +54,38 @@ fn default_pricing() -> HashMap<String, TierPrice> {
     m
 }
 
-/// Estimated ceilings per plan, API-equivalent dollars. These are rough
-/// community-style estimates, clearly labelled in the UI; observed limit
-/// events override them (see state::Calibration).
+/// Estimated ceilings per plan, API-equivalent dollars (5-hour, weekly).
+/// Anchored on a real Max 5x observation (2026-07: 17% of the session used
+/// at ~$45, 19% of the week at ~$420) and scaled by tier multiple. Clearly
+/// labelled as estimates in the UI; observed limit events and the
+/// gauge_ceilings config key override them.
 fn default_ceilings(plan: Option<&str>) -> (f64, f64) {
     match plan {
-        Some("pro") => (15.0, 100.0),
-        Some("max_5x") => (75.0, 500.0),
-        Some("max_20x") => (300.0, 2000.0),
+        Some("pro") => (50.0, 450.0),
+        Some("max_5x") => (250.0, 2200.0),
+        Some("max_20x") => (1000.0, 8800.0),
         Some("api") => (f64::INFINITY, f64::INFINITY),
-        _ => (75.0, 500.0), // unknown: assume mid tier
+        _ => (250.0, 2200.0), // unknown: assume mid tier
     }
+}
+
+/// Parse "wed 05:59" (case-insensitive, local time) into (weekday, h, m).
+fn parse_weekly_reset(s: &str) -> Option<(chrono::Weekday, u32, u32)> {
+    let mut parts = s.split_whitespace();
+    let day = match parts.next()?.to_lowercase().get(..3)? {
+        "mon" => chrono::Weekday::Mon,
+        "tue" => chrono::Weekday::Tue,
+        "wed" => chrono::Weekday::Wed,
+        "thu" => chrono::Weekday::Thu,
+        "fri" => chrono::Weekday::Fri,
+        "sat" => chrono::Weekday::Sat,
+        "sun" => chrono::Weekday::Sun,
+        _ => return None,
+    };
+    let mut hm = parts.next()?.split(':');
+    let h: u32 = hm.next()?.parse().ok()?;
+    let m: u32 = hm.next()?.parse().ok()?;
+    (h < 24 && m < 60).then_some((day, h, m))
 }
 
 pub fn load() -> Config {
@@ -112,5 +138,6 @@ pub fn load() -> Config {
         cache_read_mult: raw.cache_read_mult.unwrap_or(0.10),
         five_h_ceiling: five_h,
         weekly_ceiling: weekly,
+        weekly_reset: raw.weekly_reset.as_deref().and_then(parse_weekly_reset),
     }
 }

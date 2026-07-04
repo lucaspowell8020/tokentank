@@ -31,13 +31,33 @@ fn get_state(app_state: State<AppState>) -> state::Snapshot {
     app_state.0.lock().unwrap().snapshot(now_epoch())
 }
 
+fn fmt_dur(secs: i64) -> String {
+    let secs = secs.max(0);
+    let (d, h, m) = (secs / 86400, (secs % 86400) / 3600, (secs % 3600) / 60);
+    if d > 0 {
+        format!("{d}d {h}h")
+    } else {
+        format!("{h}h {m:02}m")
+    }
+}
+
 fn tooltip(snap: &state::Snapshot) -> String {
-    format!(
-        "Claude Gauge — 5h: {:.0}% left · week: {:.0}% left · ${:.2}/h",
-        (1.0 - snap.five_h_cost / snap.five_h_ceiling.max(0.01)).clamp(0.0, 1.0) * 100.0,
-        (1.0 - snap.weekly_cost / snap.weekly_ceiling.max(0.01)).clamp(0.0, 1.0) * 100.0,
-        snap.burn_per_hour
-    )
+    let now = now_epoch();
+    let session = match snap.five_h_reset {
+        Some(reset) => format!(
+            "session: {:.0}% left, resets in {}",
+            (1.0 - snap.five_h_cost / snap.five_h_ceiling.max(0.01)).clamp(0.0, 1.0) * 100.0,
+            fmt_dur(reset - now)
+        ),
+        None => "session: full tank".to_string(),
+    };
+    let week_pct =
+        (1.0 - snap.weekly_cost / snap.weekly_ceiling.max(0.01)).clamp(0.0, 1.0) * 100.0;
+    let week = match snap.weekly_reset {
+        Some(reset) => format!("week: {:.0}% left, resets in {}", week_pct, fmt_dur(reset - now)),
+        None => format!("week: {week_pct:.0}% left"),
+    };
+    format!("Claude Gauge — {session} · {week} · ${:.2}/h", snap.burn_per_hour)
 }
 
 fn push_update(app: &tauri::AppHandle, snap: &state::Snapshot) {
