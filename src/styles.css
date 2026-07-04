@@ -24,7 +24,9 @@ body {
 }
 
 #app {
-  padding: 16px 20px 14px;
+  padding: 14px 20px 12px;
+  max-width: 460px;
+  margin: 0 auto;
 }
 
 .eyebrow {
@@ -49,7 +51,7 @@ body {
 }
 
 #dial {
-  width: 82%;
+  width: 76%;
   height: auto;
   display: block;
   margin: 0 auto;
