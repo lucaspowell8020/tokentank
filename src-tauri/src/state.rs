@@ -169,6 +169,75 @@ impl Gauge {
         (now - WEEK, None)
     }
 
+    pub fn needs_setup(&self) -> bool {
+        self.cfg.plan.is_none()
+    }
+
+    /// Apply the setup wizard's answers. Percentages come from the Claude
+    /// app's Settings -> Usage panel; a ceiling derives as spend ÷ fraction
+    /// when there's enough spend in the window for the math to be stable.
+    /// Returns nothing; call snapshot() after.
+    pub fn apply_setup(
+        &mut self,
+        now: i64,
+        plan: &str,
+        weekly_reset: Option<&str>,
+        session_pct: Option<f64>,
+        week_pct: Option<f64>,
+    ) {
+        let plan = plan.trim().to_lowercase();
+        if !["pro", "max_5x", "max_20x", "api"].contains(&plan.as_str()) {
+            return;
+        }
+        let (default_5h, default_wk) = crate::config::plan_default_ceilings(Some(&plan));
+        self.cfg.plan = Some(plan.clone());
+        self.cfg.five_h_ceiling = default_5h;
+        self.cfg.weekly_ceiling = default_wk;
+
+        let weekly_reset_str = weekly_reset.map(|s| s.trim().to_lowercase());
+        if let Some(parsed) = weekly_reset_str
+            .as_deref()
+            .and_then(crate::config::parse_weekly_reset)
+        {
+            self.cfg.weekly_reset = Some(parsed);
+        }
+
+        let mut settings = crate::config::GaugeSettings {
+            plan: Some(plan.clone()),
+            weekly_reset: weekly_reset_str.clone(),
+            five_h_ceiling: None,
+            weekly_ceiling: None,
+        };
+
+        if plan != "api" {
+            // Session ceiling from panel percentage, if a session is active
+            // and there's enough spend for the division to mean something.
+            if let (Some(pct), Some((start, _))) =
+                (session_pct.filter(|p| *p >= 1.0), self.session_block(now))
+            {
+                let spend = self.cost_between(start - 1, now);
+                if spend >= 2.0 {
+                    let ceiling = spend / (pct / 100.0);
+                    self.cfg.five_h_ceiling = ceiling;
+                    settings.five_h_ceiling = Some(ceiling);
+                }
+            }
+            // Weekly ceiling from panel percentage, using the (possibly just
+            // configured) anchor window.
+            if let Some(pct) = week_pct.filter(|p| *p >= 1.0) {
+                let (week_start, _) = self.weekly_window(now);
+                let spend = self.cost_between(week_start, now);
+                if spend >= 10.0 {
+                    let ceiling = spend / (pct / 100.0);
+                    self.cfg.weekly_ceiling = ceiling;
+                    settings.weekly_ceiling = Some(ceiling);
+                }
+            }
+        }
+
+        crate::config::save_settings(&settings);
+    }
+
     pub fn snapshot(&self, now: i64) -> Snapshot {
         let block = self.session_block(now);
         let five_h_cost = block.map_or(0.0, |(start, _)| self.cost_between(start - 1, now));

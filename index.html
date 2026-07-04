@@ -81,11 +81,67 @@
 
       <footer>
         <span id="plan-line">plan: not set</span>
+        <button id="recal" class="linkish" type="button">recalibrate</button>
         <a href="https://agentshortlist.com/claude-usage" target="_blank" rel="noopener"
           >agentshortlist.com</a
         >
       </footer>
     </main>
+
+    <!-- First-run setup wizard: calibrates the gauge from three numbers the
+         user copies out of the Claude app. Never touches their account. -->
+    <div id="wizard" class="wizard" hidden>
+      <div class="wizard-inner">
+        <p class="eyebrow">Setup · about 60 seconds</p>
+        <h2 class="wiz-title">Calibrate your gauge.</h2>
+        <p class="wiz-note">
+          Claude Gauge never connects to your account. Instead, open the
+          Claude app &rarr; <strong>Settings &rarr; Usage</strong> and copy
+          three numbers from it. Estimates are used for anything you skip.
+        </p>
+
+        <label class="wiz-label">Your plan</label>
+        <div class="plan-btns" id="plan-btns">
+          <button type="button" data-plan="pro">Pro</button>
+          <button type="button" data-plan="max_5x" class="on">Max 5x</button>
+          <button type="button" data-plan="max_20x">Max 20x</button>
+          <button type="button" data-plan="api">API</button>
+        </div>
+
+        <div id="wiz-pcts">
+          <label class="wiz-label" for="wiz-session-pct"
+            >&ldquo;Current session&rdquo; &mdash; % used</label
+          >
+          <input id="wiz-session-pct" type="number" min="1" max="99" placeholder="e.g. 39" />
+
+          <label class="wiz-label" for="wiz-week-pct"
+            >&ldquo;All models&rdquo; weekly &mdash; % used</label
+          >
+          <input id="wiz-week-pct" type="number" min="1" max="99" placeholder="e.g. 21" />
+
+          <label class="wiz-label">Weekly reset (shown under &ldquo;All models&rdquo;)</label>
+          <div class="wiz-row">
+            <select id="wiz-day">
+              <option value="mon">Monday</option>
+              <option value="tue">Tuesday</option>
+              <option value="wed" selected>Wednesday</option>
+              <option value="thu">Thursday</option>
+              <option value="fri">Friday</option>
+              <option value="sat">Saturday</option>
+              <option value="sun">Sunday</option>
+            </select>
+            <input id="wiz-time" type="time" value="06:00" />
+          </div>
+        </div>
+        <p class="wiz-small" id="wiz-api-note" hidden>
+          The API has no usage caps &mdash; your gauges will read full and the
+          dashboard tracks spend instead.
+        </p>
+
+        <button id="wiz-save" class="wiz-cta" type="button">Save &amp; start</button>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

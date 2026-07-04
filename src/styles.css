@@ -262,3 +262,135 @@ footer a {
   color: var(--vermillion);
   text-decoration: none;
 }
+
+.linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--ink-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkish:hover {
+  color: var(--vermillion);
+}
+
+/* ── Setup wizard ────────────────────────────────────── */
+
+.wizard {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.wizard-inner {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 18px 22px 20px;
+}
+
+.wiz-title {
+  font-family: Georgia, "Fraunces", serif;
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.wiz-note {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 0 0 16px;
+}
+
+.wiz-label {
+  display: block;
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  margin: 14px 0 6px;
+}
+
+.plan-btns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--ink);
+}
+
+.plan-btns button {
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--paper);
+  color: var(--ink);
+  border: 0;
+  padding: 10px 4px;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.plan-btns button + button {
+  border-left: 1px solid var(--ink);
+}
+
+.plan-btns button.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.wizard input[type="number"],
+.wizard input[type="time"],
+.wizard select {
+  width: 100%;
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: 9px 10px;
+}
+
+.wizard input:focus,
+.wizard select:focus {
+  outline: none;
+  border-color: var(--vermillion);
+}
+
+.wiz-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 8px;
+}
+
+.wiz-small {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin: 12px 0 0;
+}
+
+.wiz-cta {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  font-family: "IBM Plex Mono", Consolas, monospace;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--ink);
+  color: var(--paper);
+  border: 0;
+  padding: 13px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.wiz-cta:hover {
+  background: var(--vermillion);
+}

@@ -31,6 +31,30 @@ fn get_state(app_state: State<AppState>) -> state::Snapshot {
     app_state.0.lock().unwrap().snapshot(now_epoch())
 }
 
+#[tauri::command]
+fn needs_setup(app_state: State<AppState>) -> bool {
+    app_state.0.lock().unwrap().needs_setup()
+}
+
+#[tauri::command]
+fn save_setup(
+    app: tauri::AppHandle,
+    app_state: State<AppState>,
+    plan: String,
+    weekly_reset: Option<String>,
+    session_pct: Option<f64>,
+    week_pct: Option<f64>,
+) -> state::Snapshot {
+    let snap = {
+        let mut gauge = app_state.0.lock().unwrap();
+        let now = now_epoch();
+        gauge.apply_setup(now, &plan, weekly_reset.as_deref(), session_pct, week_pct);
+        gauge.snapshot(now)
+    };
+    push_update(&app, &snap);
+    snap
+}
+
 fn fmt_dur(secs: i64) -> String {
     let secs = secs.max(0);
     let (d, h, m) = (secs / 86400, (secs % 86400) / 3600, (secs % 3600) / 60);
@@ -78,7 +102,7 @@ fn main() {
 
     tauri::Builder::default()
         .manage(AppState(Mutex::new(gauge)))
-        .invoke_handler(tauri::generate_handler![get_state])
+        .invoke_handler(tauri::generate_handler![get_state, needs_setup, save_setup])
         .setup(|app| {
             // Tray with menu
             let open = MenuItem::with_id(app, "open", "Open Claude Gauge", true, None::<&str>)?;

@@ -100,12 +100,69 @@ function tick() {
   }
 }
 
+/* ── Setup wizard ─────────────────────────────────────── */
+
+let wizPlan = "max_5x";
+
+function showWizard() {
+  document.getElementById("wizard")!.hidden = false;
+}
+
+function hideWizard() {
+  document.getElementById("wizard")!.hidden = true;
+}
+
+function wireWizard() {
+  const btns = document.querySelectorAll<HTMLButtonElement>("#plan-btns button");
+  btns.forEach((b) =>
+    b.addEventListener("click", () => {
+      btns.forEach((x) => x.classList.remove("on"));
+      b.classList.add("on");
+      wizPlan = b.dataset.plan!;
+      const isApi = wizPlan === "api";
+      (document.getElementById("wiz-pcts") as HTMLElement).hidden = isApi;
+      (document.getElementById("wiz-api-note") as HTMLElement).hidden = !isApi;
+    })
+  );
+
+  document.getElementById("recal")!.addEventListener("click", showWizard);
+
+  document.getElementById("wiz-save")!.addEventListener("click", async () => {
+    const num = (id: string): number | null => {
+      const v = (document.getElementById(id) as HTMLInputElement).value.trim();
+      const n = parseFloat(v);
+      return v && isFinite(n) && n >= 1 && n <= 99 ? n : null;
+    };
+    const day = (document.getElementById("wiz-day") as HTMLSelectElement).value;
+    const time = (document.getElementById("wiz-time") as HTMLInputElement).value || "06:00";
+
+    if (!("__TAURI_INTERNALS__" in window)) {
+      hideWizard();
+      return;
+    }
+    try {
+      const snapshot = await invoke<GaugeSnapshot>("save_setup", {
+        plan: wizPlan,
+        weeklyReset: `${day} ${time}`,
+        sessionPct: num("wiz-session-pct"),
+        weekPct: num("wiz-week-pct"),
+      });
+      render(snapshot);
+      hideWizard();
+    } catch (e) {
+      console.error("save_setup failed", e);
+    }
+  });
+}
+
 async function init() {
   setInterval(tick, 1000);
+  wireWizard();
 
   // Outside Tauri (plain browser dev), render sample data so the popover
   // can be designed and reviewed without the Rust side.
   if (!("__TAURI_INTERNALS__" in window)) {
+    if (location.hash === "#wizard") showWizard();
     const now = Date.now() / 1000;
     render({
       five_h_cost: 45,
@@ -127,10 +184,11 @@ async function init() {
   }
 
   try {
+    if (await invoke<boolean>("needs_setup")) showWizard();
     const snapshot = await invoke<GaugeSnapshot>("get_state");
     render(snapshot);
   } catch (e) {
-    console.error("get_state failed", e);
+    console.error("startup failed", e);
   }
   await listen<GaugeSnapshot>("gauge://state", (event) => render(event.payload));
 }

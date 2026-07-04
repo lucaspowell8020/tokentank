@@ -1,7 +1,7 @@
 //! Reads the shared claude_usage.config.json (same file the CLI dashboard
 //! uses) plus gauge-specific ceiling overrides.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -69,8 +69,47 @@ fn default_ceilings(plan: Option<&str>) -> (f64, f64) {
     }
 }
 
+/// Settings written by the in-app setup wizard. Layered over the shared
+/// claude_usage.config.json (wizard wins), so the CLI tool's config is
+/// never modified by the app.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct GaugeSettings {
+    pub plan: Option<String>,
+    pub weekly_reset: Option<String>,
+    pub five_h_ceiling: Option<f64>,
+    pub weekly_ceiling: Option<f64>,
+}
+
+fn settings_path() -> Option<PathBuf> {
+    dirs::config_dir().map(|d| d.join("claude-gauge").join("settings.json"))
+}
+
+pub fn load_settings() -> GaugeSettings {
+    settings_path()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|t| serde_json::from_str(t.trim_start_matches('\u{feff}')).ok())
+        .unwrap_or_default()
+}
+
+pub fn save_settings(s: &GaugeSettings) {
+    if let Some(path) = settings_path() {
+        if let Some(dir) = path.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        if let Ok(text) = serde_json::to_string_pretty(s) {
+            let _ = std::fs::write(path, text);
+        }
+    }
+}
+
+/// Estimated ceilings for a plan key — public so the wizard can reset to
+/// tier defaults when the user changes plan without giving percentages.
+pub fn plan_default_ceilings(plan: Option<&str>) -> (f64, f64) {
+    default_ceilings(plan)
+}
+
 /// Parse "wed 05:59" (case-insensitive, local time) into (weekday, h, m).
-fn parse_weekly_reset(s: &str) -> Option<(chrono::Weekday, u32, u32)> {
+pub fn parse_weekly_reset(s: &str) -> Option<(chrono::Weekday, u32, u32)> {
     let mut parts = s.split_whitespace();
     let day = match parts.next()?.to_lowercase().get(..3)? {
         "mon" => chrono::Weekday::Mon,
@@ -129,7 +168,7 @@ pub fn load() -> Config {
     let mut pricing = default_pricing();
     pricing.extend(raw.pricing);
 
-    Config {
+    let mut cfg = Config {
         plan,
         plan_prices,
         pricing,
@@ -139,5 +178,26 @@ pub fn load() -> Config {
         five_h_ceiling: five_h,
         weekly_ceiling: weekly,
         weekly_reset: raw.weekly_reset.as_deref().and_then(parse_weekly_reset),
+    };
+
+    // Wizard settings win over the shared config file.
+    let settings = load_settings();
+    if let Some(p) = settings.plan.as_deref() {
+        if ["pro", "max_5x", "max_20x", "api"].contains(&p) {
+            let (f, w) = default_ceilings(Some(p));
+            cfg.plan = Some(p.to_string());
+            cfg.five_h_ceiling = f;
+            cfg.weekly_ceiling = w;
+        }
     }
+    if let Some(wr) = settings.weekly_reset.as_deref().and_then(parse_weekly_reset) {
+        cfg.weekly_reset = Some(wr);
+    }
+    if let Some(v) = settings.five_h_ceiling {
+        cfg.five_h_ceiling = v;
+    }
+    if let Some(v) = settings.weekly_ceiling {
+        cfg.weekly_ceiling = v;
+    }
+    cfg
 }
