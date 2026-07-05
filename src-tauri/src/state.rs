@@ -29,6 +29,7 @@ pub struct Snapshot {
     pub plan: Option<String>,
     pub plan_price: f64,
     pub plan_multiple: f64,
+    pub plan_detected: bool,
     pub calibrated: bool,
     /// Remaining fraction of the tighter gauge, for the tray icon.
     pub remaining: f64,
@@ -293,6 +294,7 @@ impl Gauge {
             plan: self.cfg.plan.clone(),
             plan_price,
             plan_multiple,
+            plan_detected: self.cfg.plan_detected,
             calibrated: self.calibration.five_h.is_some() || self.calibration.weekly.is_some(),
             remaining,
         }

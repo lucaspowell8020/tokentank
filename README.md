@@ -4,7 +4,11 @@
 
 Claude Code is the first supported tool; OpenAI Codex, Gemini CLI, and others are on the roadmap (they all write local session logs — same pattern, different parsers).
 
-Everything runs locally. It reads `~/.claude/projects` and nothing else. No network calls, no telemetry, no account.
+Everything runs locally. It reads your Claude Code transcripts under
+`~/.claude/projects`, and it reads two plan-identifying fields
+(`subscriptionType`, `rateLimitTier`) from `~/.claude/.credentials.json` to
+auto-detect which plan you're on — **never the auth token in that file, and
+nothing is transmitted.** No network calls, no telemetry, no account.
 
 ## What the gauge shows
 
@@ -15,6 +19,13 @@ Everything runs locally. It reads `~/.claude/projects` and nothing else. No netw
 
 - **5-hour session**: mirrors Claude's session blocks — a block opens with your first message after the previous one expires and lasts five hours. The countdown is to the end of the current block. No active block = full tank.
 - **Weekly quota**: Claude resets weekly at a fixed time (shown in the Claude app under Settings → Usage, e.g. "Resets Wed 5:59 AM"). Put that in config as `weekly_reset` and the gauge tracks the real window; without it, it falls back to a rolling 7-day estimate.
+
+## Which plan you're on
+
+Auto-detected. TokenTank reads the plan from Claude Code's local credentials
+(the `rateLimitTier` field), so you don't have to tell it — the popover shows
+`plan: max_5x · detected`. It self-corrects if you change plans. You can still
+override it in the setup wizard or with the `plan` config key below.
 
 ## How it knows the ceiling
 

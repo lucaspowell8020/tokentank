@@ -42,6 +42,44 @@ pub struct Config {
     pub weekly_ceiling: f64,
     /// Weekly quota anchor: (weekday, hour, minute) in local time.
     pub weekly_reset: Option<(chrono::Weekday, u32, u32)>,
+    /// True when `plan` came from Claude Code's local credentials rather than
+    /// a manual guess — the UI labels it "detected".
+    pub plan_detected: bool,
+}
+
+/// Read the current plan from Claude Code's local credentials file. Claude
+/// Code stores the signed-in plan there; we read ONLY the two plan-identifying
+/// fields (`rateLimitTier`, `subscriptionType`) and never the auth token.
+/// Nothing is transmitted — this is the same local-file approach as reading
+/// transcripts. Returns a plan key: "pro" | "max_5x" | "max_20x".
+pub fn detect_plan() -> Option<String> {
+    let path = dirs::home_dir()?.join(".claude").join(".credentials.json");
+    let text = std::fs::read_to_string(path).ok()?;
+    let json: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let oauth = json.get("claudeAiOauth")?;
+
+    // rateLimitTier is the precise field (e.g. "default_claude_max_5x").
+    let tier = oauth
+        .get("rateLimitTier")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if tier.contains("max_20x") {
+        return Some("max_20x".into());
+    }
+    if tier.contains("max_5x") {
+        return Some("max_5x".into());
+    }
+    if tier.contains("pro") {
+        return Some("pro".into());
+    }
+
+    // Fall back to the coarse subscriptionType ("pro" | "max" | "free").
+    match oauth.get("subscriptionType").and_then(|v| v.as_str()) {
+        Some("pro") => Some("pro".into()),
+        Some("max") => Some("max_5x".into()), // tier unknown; assume 5x
+        _ => None,
+    }
 }
 
 fn default_pricing() -> HashMap<String, TierPrice> {
@@ -148,18 +186,39 @@ pub fn load() -> Config {
         }
     }
 
-    let plan = raw
-        .plan
-        .as_deref()
-        .map(|p| p.trim().to_lowercase())
-        .filter(|p| ["pro", "max_5x", "max_20x", "api"].contains(&p.as_str()));
-
     let mut plan_prices: HashMap<String, f64> = HashMap::new();
     plan_prices.insert("pro".into(), 20.0);
     plan_prices.insert("max_5x".into(), 100.0);
     plan_prices.insert("max_20x".into(), 200.0);
     plan_prices.extend(raw.plan_prices);
 
+    let mut pricing = default_pricing();
+    pricing.extend(raw.pricing);
+
+    let settings = load_settings();
+    let valid = |p: &str| ["pro", "max_5x", "max_20x", "api"].contains(&p);
+
+    // Resolve the plan, lowest precedence first:
+    //   shared config file  <  wizard choice  <  auto-detected credentials.
+    // Detection is last because the plan is a fact from Claude Code's own
+    // login, not a preference — it self-corrects if the user changed plans
+    // since running the wizard.
+    let mut plan: Option<String> = raw
+        .plan
+        .as_deref()
+        .map(|p| p.trim().to_lowercase())
+        .filter(|p| valid(p));
+    if let Some(p) = settings.plan.as_deref().map(str::to_lowercase).filter(|p| valid(p)) {
+        plan = Some(p);
+    }
+    let mut plan_detected = false;
+    if let Some(detected) = detect_plan() {
+        plan = Some(detected);
+        plan_detected = true;
+    }
+
+    // Resolve ceilings, lowest precedence first:
+    //   tier default for the plan  <  config gauge_ceilings  <  wizard-calibrated
     let (mut five_h, mut weekly) = default_ceilings(plan.as_deref());
     if let Some(v) = raw.gauge_ceilings.get("five_h") {
         five_h = *v;
@@ -167,11 +226,20 @@ pub fn load() -> Config {
     if let Some(v) = raw.gauge_ceilings.get("weekly") {
         weekly = *v;
     }
+    if let Some(v) = settings.five_h_ceiling {
+        five_h = v;
+    }
+    if let Some(v) = settings.weekly_ceiling {
+        weekly = v;
+    }
 
-    let mut pricing = default_pricing();
-    pricing.extend(raw.pricing);
+    let weekly_reset = settings
+        .weekly_reset
+        .as_deref()
+        .or(raw.weekly_reset.as_deref())
+        .and_then(parse_weekly_reset);
 
-    let mut cfg = Config {
+    Config {
         plan,
         plan_prices,
         pricing,
@@ -180,27 +248,7 @@ pub fn load() -> Config {
         cache_read_mult: raw.cache_read_mult.unwrap_or(0.10),
         five_h_ceiling: five_h,
         weekly_ceiling: weekly,
-        weekly_reset: raw.weekly_reset.as_deref().and_then(parse_weekly_reset),
-    };
-
-    // Wizard settings win over the shared config file.
-    let settings = load_settings();
-    if let Some(p) = settings.plan.as_deref() {
-        if ["pro", "max_5x", "max_20x", "api"].contains(&p) {
-            let (f, w) = default_ceilings(Some(p));
-            cfg.plan = Some(p.to_string());
-            cfg.five_h_ceiling = f;
-            cfg.weekly_ceiling = w;
-        }
+        weekly_reset,
+        plan_detected,
     }
-    if let Some(wr) = settings.weekly_reset.as_deref().and_then(parse_weekly_reset) {
-        cfg.weekly_reset = Some(wr);
-    }
-    if let Some(v) = settings.five_h_ceiling {
-        cfg.five_h_ceiling = v;
-    }
-    if let Some(v) = settings.weekly_ceiling {
-        cfg.weekly_ceiling = v;
-    }
-    cfg
 }

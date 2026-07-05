@@ -213,7 +213,9 @@ fn main() {
                         gauge.snapshot(now)
                     };
                     println!(
-                        "[gauge] 5h ${:.2}/{:.0} · week ${:.2}/{:.0} · burn ${:.2}/h · remaining {:.0}%",
+                        "[gauge] plan {}{} · 5h ${:.2}/{:.0} · week ${:.2}/{:.0} · burn ${:.2}/h · remaining {:.0}%",
+                        snap.plan.as_deref().unwrap_or("(unset)"),
+                        if snap.plan_detected { " (detected)" } else { "" },
                         snap.five_h_cost,
                         snap.five_h_ceiling,
                         snap.weekly_cost,

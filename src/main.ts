@@ -15,6 +15,7 @@ interface GaugeSnapshot {
   plan: string | null;
   plan_price: number;
   plan_multiple: number;
+  plan_detected: boolean;
   calibrated: boolean;
 }
 
@@ -67,7 +68,7 @@ function render(s: GaugeSnapshot) {
       : "—";
 
   document.getElementById("plan-line")!.textContent = s.plan
-    ? "plan: " + s.plan
+    ? "plan: " + s.plan + (s.plan_detected ? " · detected" : "")
     : "plan: not set";
   document.getElementById("calibration-note")!.textContent = s.calibrated
     ? "Ceilings calibrated from your own observed limit events."
@@ -105,6 +106,20 @@ function tick() {
 let wizPlan = "max_5x";
 
 function showWizard() {
+  // Pre-select the current plan (detected or set) so the user only confirms.
+  if (snap?.plan) {
+    const btns = document.querySelectorAll<HTMLButtonElement>("#plan-btns button");
+    btns.forEach((b) => {
+      const on = b.dataset.plan === snap!.plan;
+      b.classList.toggle("on", on);
+      if (on) {
+        wizPlan = b.dataset.plan!;
+        const isApi = wizPlan === "api";
+        (document.getElementById("wiz-pcts") as HTMLElement).hidden = isApi;
+        (document.getElementById("wiz-api-note") as HTMLElement).hidden = !isApi;
+      }
+    });
+  }
   document.getElementById("wizard")!.hidden = false;
 }
 
@@ -179,6 +194,7 @@ async function init() {
       plan: "max_5x",
       plan_price: 100,
       plan_multiple: 18.5,
+      plan_detected: true,
       calibrated: false,
     });
     return;
