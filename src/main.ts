@@ -159,25 +159,26 @@ async function init() {
   setInterval(tick, 1000);
   wireWizard();
 
-  // Outside Tauri (plain browser dev), render sample data so the popover
-  // can be designed and reviewed without the Rust side.
+  // Outside Tauri (plain browser dev, and the embedded demo on the product
+  // page), render consistent sample data so the popover renders without the
+  // Rust side. This is what agentshortlist.com/tokentank shows.
   if (!("__TAURI_INTERNALS__" in window)) {
     if (location.hash === "#wizard") showWizard();
     const now = Date.now() / 1000;
     render({
-      five_h_cost: 45,
+      five_h_cost: 84.8, // 68% of the tank left
       five_h_ceiling: 265,
-      five_h_reset: now + 4 * 3600 + 27 * 60,
+      five_h_reset: now + 3 * 3600 + 12 * 60 + 45,
       session_active: true,
-      weekly_cost: 420,
+      weekly_cost: 572, // 74% left
       weekly_ceiling: 2200,
-      weekly_reset: now + 4 * 86400 + 17 * 3600,
-      burn_per_hour: 44.96,
-      today_cost: 44.96,
-      month_cost: 6059,
+      weekly_reset: now + 3 * 86400 + 14 * 3600 + 6 * 60,
+      burn_per_hour: 12.4,
+      today_cost: 31.07,
+      month_cost: 1850,
       plan: "max_5x",
       plan_price: 100,
-      plan_multiple: 30.3,
+      plan_multiple: 18.5,
       calibrated: false,
     });
     return;
