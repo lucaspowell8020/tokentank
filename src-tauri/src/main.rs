@@ -37,6 +37,23 @@ fn needs_setup(app_state: State<AppState>) -> bool {
 }
 
 #[tauri::command]
+fn get_autostart(app: tauri::AppHandle) -> bool {
+    use tauri_plugin_autostart::ManagerExt;
+    app.autolaunch().is_enabled().unwrap_or(false)
+}
+
+#[tauri::command]
+fn set_autostart(app: tauri::AppHandle, enabled: bool) -> bool {
+    use tauri_plugin_autostart::ManagerExt;
+    let manager = app.autolaunch();
+    let _ = if enabled { manager.enable() } else { manager.disable() };
+    let mut settings = config::load_settings();
+    settings.autostart = Some(enabled);
+    config::save_settings(&settings);
+    manager.is_enabled().unwrap_or(false)
+}
+
+#[tauri::command]
 fn save_setup(
     app: tauri::AppHandle,
     app_state: State<AppState>,
@@ -101,9 +118,32 @@ fn main() {
     let gauge = state::Gauge::new(cfg, base);
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .manage(AppState(Mutex::new(gauge)))
-        .invoke_handler(tauri::generate_handler![get_state, needs_setup, save_setup])
+        .invoke_handler(tauri::generate_handler![
+            get_state,
+            needs_setup,
+            save_setup,
+            get_autostart,
+            set_autostart
+        ])
         .setup(|app| {
+            // A tray gauge only works if it's running: default autostart ON
+            // the first time this build runs, but respect any choice the
+            // user has made via the popover toggle.
+            {
+                use tauri_plugin_autostart::ManagerExt;
+                let mut settings = config::load_settings();
+                if settings.autostart.is_none() {
+                    let _ = app.autolaunch().enable();
+                    settings.autostart = Some(true);
+                    config::save_settings(&settings);
+                }
+            }
+
             // Tray with menu
             let open = MenuItem::with_id(app, "open", "Open TokenTank", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;

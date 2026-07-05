@@ -78,6 +78,9 @@ pub struct GaugeSettings {
     pub weekly_reset: Option<String>,
     pub five_h_ceiling: Option<f64>,
     pub weekly_ceiling: Option<f64>,
+    /// None = never configured (first run defaults it to on).
+    #[serde(default)]
+    pub autostart: Option<bool>,
 }
 
 fn settings_path() -> Option<PathBuf> {

@@ -202,12 +202,13 @@ impl Gauge {
             self.cfg.weekly_reset = Some(parsed);
         }
 
-        let mut settings = crate::config::GaugeSettings {
-            plan: Some(plan.clone()),
-            weekly_reset: weekly_reset_str.clone(),
-            five_h_ceiling: None,
-            weekly_ceiling: None,
-        };
+        // Start from what's on disk so wizard re-runs don't wipe unrelated
+        // settings (e.g. the autostart choice).
+        let mut settings = crate::config::load_settings();
+        settings.plan = Some(plan.clone());
+        settings.weekly_reset = weekly_reset_str.clone();
+        settings.five_h_ceiling = None;
+        settings.weekly_ceiling = None;
 
         if plan != "api" {
             // Session ceiling from panel percentage, if a session is active

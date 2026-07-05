@@ -187,6 +187,14 @@ async function init() {
     if (await invoke<boolean>("needs_setup")) showWizard();
     const snapshot = await invoke<GaugeSnapshot>("get_state");
     render(snapshot);
+
+    const autostart = document.getElementById("autostart-toggle") as HTMLInputElement;
+    autostart.checked = await invoke<boolean>("get_autostart");
+    autostart.addEventListener("change", async () => {
+      autostart.checked = await invoke<boolean>("set_autostart", {
+        enabled: autostart.checked,
+      });
+    });
   } catch (e) {
     console.error("startup failed", e);
   }
