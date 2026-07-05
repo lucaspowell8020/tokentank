@@ -144,6 +144,11 @@ fn main() {
                 }
             }
 
+            // On macOS, this is a menu-bar app: no Dock icon, no app-switcher
+            // entry. The tray gauge and popover are the whole UI.
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             // Tray with menu
             let open = MenuItem::with_id(app, "open", "Open TokenTank", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
