@@ -1,6 +1,6 @@
 [package]
 name = "tokentank"
-version = "0.4.1"
+version = "0.4.2"
 description = "TokenTank - the fuel gauge for your AI tools. Remaining usage and reset countdowns in your tray. Local only, nothing uploaded."
 authors = ["Lucas Powell"]
 license = "MIT"

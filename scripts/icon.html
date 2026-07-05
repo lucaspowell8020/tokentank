@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>render icon</title></head>
+<body>
+<canvas id="c" width="1024" height="1024"></canvas>
+<p id="status">rendering…</p>
+<script>
+// Option A: vermillion tile, cream fuel-gauge dial + needle.
+const D = { tile:['#bd3b1c','#9a3116'], gauge:'#f7f3ec', needle:'#f7f3ec', hub:'#f7f3ec', notch:'#a5331a' };
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function draw() {
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+  const S = 1024;
+  ctx.clearRect(0,0,S,S);
+  ctx.save();
+  ctx.scale(S/100, S/100); // design space is 100 units
+
+  const g = ctx.createLinearGradient(0,3,0,97);
+  g.addColorStop(0, D.tile[0]);
+  g.addColorStop(1, D.tile[1]);
+  ctx.fillStyle = g;
+  roundRect(ctx,3,3,94,94,22);
+  ctx.fill();
+
+  const cx=50, cy=63, R=30;
+  ctx.lineCap='round';
+  ctx.strokeStyle=D.gauge; ctx.lineWidth=7.6;
+  ctx.beginPath(); ctx.arc(cx,cy,R,Math.PI,2*Math.PI); ctx.stroke();
+
+  ctx.strokeStyle=D.notch; ctx.lineWidth=2.4; ctx.lineCap='butt';
+  [Math.PI, 1.5*Math.PI, 2*Math.PI].forEach(a=>{
+    const ix=cx+Math.cos(a)*(R-3.6), iy=cy+Math.sin(a)*(R-3.6);
+    const ox=cx+Math.cos(a)*(R+3.6), oy=cy+Math.sin(a)*(R+3.6);
+    ctx.beginPath(); ctx.moveTo(ix,iy); ctx.lineTo(ox,oy); ctx.stroke();
+  });
+
+  const na=1.74*Math.PI;
+  ctx.strokeStyle=D.needle; ctx.lineWidth=3.4; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(cx,cy);
+  ctx.lineTo(cx+Math.cos(na)*R*0.92, cy+Math.sin(na)*R*0.92);
+  ctx.stroke();
+
+  ctx.fillStyle=D.hub;
+  ctx.beginPath(); ctx.arc(cx,cy,4.4,0,2*Math.PI); ctx.fill();
+  ctx.restore();
+}
+
+async function run() {
+  draw();
+  const url = document.getElementById('c').toDataURL('image/png');
+  try {
+    const res = await fetch('/save', { method:'POST', body: url });
+    document.getElementById('status').textContent = 'saved: ' + (await res.text());
+  } catch(e) {
+    document.getElementById('status').textContent = 'error: ' + e;
+  }
+}
+run();
+</script>
+</body>
+</html>
