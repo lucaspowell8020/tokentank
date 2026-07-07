@@ -27,6 +27,14 @@ Auto-detected. TokenTank reads the plan from Claude Code's local credentials
 `plan: max_5x · detected`. It self-corrects if you change plans. You can still
 override it in the setup wizard or with the `plan` config key below.
 
+## Session & weekly reset timing
+
+Claude's 5-hour session resets on a fixed cadence tied to your account, not to
+your first message — so it can't be read from transcripts (the anchor can fall
+in a gap with no activity). The setup wizard asks "current session resets in
+___" from the Usage panel; TokenTank pins its 5-hour countdown to that, exact
+from then on. Same idea for the weekly reset (day + time).
+
 ## How it knows the ceiling
 
 Anthropic doesn't publish subscription quotas as numbers, so the gauge starts with clearly-labelled estimates per plan. Two ways it gets accurate:

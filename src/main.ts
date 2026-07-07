@@ -151,6 +151,15 @@ function wireWizard() {
     const day = (document.getElementById("wiz-day") as HTMLSelectElement).value;
     const time = (document.getElementById("wiz-time") as HTMLInputElement).value || "06:00";
 
+    // "Current session resets in Hh Mm" → minutes, or null if left blank.
+    const intVal = (id: string): number => {
+      const n = parseInt((document.getElementById(id) as HTMLInputElement).value, 10);
+      return isFinite(n) && n >= 0 ? n : 0;
+    };
+    const rh = intVal("wiz-session-h");
+    const rm = intVal("wiz-session-m");
+    const sessionResetMins = rh > 0 || rm > 0 ? rh * 60 + rm : null;
+
     if (!("__TAURI_INTERNALS__" in window)) {
       hideWizard();
       return;
@@ -159,6 +168,7 @@ function wireWizard() {
       const snapshot = await invoke<GaugeSnapshot>("save_setup", {
         plan: wizPlan,
         weeklyReset: `${day} ${time}`,
+        sessionResetMins,
         sessionPct: num("wiz-session-pct"),
         weekPct: num("wiz-week-pct"),
       });

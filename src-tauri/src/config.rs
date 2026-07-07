@@ -42,6 +42,10 @@ pub struct Config {
     pub weekly_ceiling: f64,
     /// Weekly quota anchor: (weekday, hour, minute) in local time.
     pub weekly_reset: Option<(chrono::Weekday, u32, u32)>,
+    /// One known 5-hour-session reset instant (unix seconds), calibrated from
+    /// the Usage panel. The window tiles 5 hours from here. None = fall back
+    /// to the transcript heuristic.
+    pub session_reset: Option<i64>,
     /// True when `plan` came from Claude Code's local credentials rather than
     /// a manual guess — the UI labels it "detected".
     pub plan_detected: bool,
@@ -116,6 +120,9 @@ pub struct GaugeSettings {
     pub weekly_reset: Option<String>,
     pub five_h_ceiling: Option<f64>,
     pub weekly_ceiling: Option<f64>,
+    /// A known 5-hour-session reset instant (unix seconds), from the panel.
+    #[serde(default)]
+    pub session_reset: Option<i64>,
     /// None = never configured (first run defaults it to on).
     #[serde(default)]
     pub autostart: Option<bool>,
@@ -249,6 +256,7 @@ pub fn load() -> Config {
         five_h_ceiling: five_h,
         weekly_ceiling: weekly,
         weekly_reset,
+        session_reset: settings.session_reset,
         plan_detected,
     }
 }

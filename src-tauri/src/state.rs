@@ -122,11 +122,22 @@ impl Gauge {
             .sum()
     }
 
-    /// The current 5-hour session block, mirroring how Claude's session
-    /// windows behave: a block opens with the first message after the
-    /// previous block expires and lasts five hours. Returns (start, end)
-    /// when a block is active at `now`.
+    /// The current 5-hour session window as (start, end).
+    ///
+    /// Claude's session limit resets on a fixed 5-hour cadence tied to the
+    /// account, NOT to your first message — the reset instant isn't derivable
+    /// from transcripts (an observed anchor can fall in a gap with no
+    /// activity). So when the reset has been calibrated from the Usage panel
+    /// (`session_reset` = one known reset instant), we tile 5 hours from it
+    /// for an exact window. Absent calibration, we fall back to a first-message
+    /// block heuristic, which is approximate.
     fn session_block(&self, now: i64) -> Option<(i64, i64)> {
+        if let Some(anchor) = self.cfg.session_reset {
+            // Smallest reset strictly after `now` on the 5-hour cadence.
+            let k = ((now - anchor) as f64 / FIVE_H as f64).floor() as i64 + 1;
+            let reset = anchor + k * FIVE_H;
+            return Some((reset - FIVE_H, reset));
+        }
         let mut block_start: Option<i64> = None;
         for e in &self.events {
             if e.ts > now {
@@ -183,6 +194,7 @@ impl Gauge {
         now: i64,
         plan: &str,
         weekly_reset: Option<&str>,
+        session_reset_mins: Option<i64>,
         session_pct: Option<f64>,
         week_pct: Option<f64>,
     ) {
@@ -203,6 +215,15 @@ impl Gauge {
             self.cfg.weekly_reset = Some(parsed);
         }
 
+        // Session reset: "resets in N minutes" from the panel → a known reset
+        // instant. Set before the ceiling math below so it uses the calibrated
+        // window.
+        let session_reset_epoch =
+            session_reset_mins.filter(|m| *m > 0).map(|m| now + m * 60);
+        if let Some(ep) = session_reset_epoch {
+            self.cfg.session_reset = Some(ep);
+        }
+
         // Start from what's on disk so wizard re-runs don't wipe unrelated
         // settings (e.g. the autostart choice).
         let mut settings = crate::config::load_settings();
@@ -210,6 +231,9 @@ impl Gauge {
         settings.weekly_reset = weekly_reset_str.clone();
         settings.five_h_ceiling = None;
         settings.weekly_ceiling = None;
+        if session_reset_epoch.is_some() {
+            settings.session_reset = session_reset_epoch;
+        }
 
         if plan != "api" {
             // Session ceiling from panel percentage, if a session is active
@@ -278,7 +302,10 @@ impl Gauge {
                 (1.0 - used / ceiling).clamp(0.0, 1.0)
             }
         };
-        let remaining = rem(five_h_cost, five_h_ceiling).min(rem(weekly_cost, weekly_ceiling));
+        // The tray icon tracks the 5-hour session — the immediate, most
+        // actionable signal (it refills in hours). The weekly tank is a
+        // slower backstop shown in the popover.
+        let remaining = rem(five_h_cost, five_h_ceiling);
 
         Snapshot {
             five_h_cost,

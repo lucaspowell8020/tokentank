@@ -59,13 +59,21 @@ fn save_setup(
     app_state: State<AppState>,
     plan: String,
     weekly_reset: Option<String>,
+    session_reset_mins: Option<i64>,
     session_pct: Option<f64>,
     week_pct: Option<f64>,
 ) -> state::Snapshot {
     let snap = {
         let mut gauge = app_state.0.lock().unwrap();
         let now = now_epoch();
-        gauge.apply_setup(now, &plan, weekly_reset.as_deref(), session_pct, week_pct);
+        gauge.apply_setup(
+            now,
+            &plan,
+            weekly_reset.as_deref(),
+            session_reset_mins,
+            session_pct,
+            week_pct,
+        );
         gauge.snapshot(now)
     };
     push_update(&app, &snap);
@@ -212,16 +220,19 @@ fn main() {
                         gauge.refresh(now);
                         gauge.snapshot(now)
                     };
+                    let mins_to_reset = snap.five_h_reset.map(|r| (r - now_epoch()) / 60).unwrap_or(-1);
                     println!(
-                        "[gauge] plan {}{} · 5h ${:.2}/{:.0} · week ${:.2}/{:.0} · burn ${:.2}/h · remaining {:.0}%",
+                        "[gauge] plan {}{} · 5h ${:.2}/{:.0} ({}% left, resets in {}h{:02}m) · week ${:.2}/{:.0} · burn ${:.2}/h",
                         snap.plan.as_deref().unwrap_or("(unset)"),
                         if snap.plan_detected { " (detected)" } else { "" },
                         snap.five_h_cost,
                         snap.five_h_ceiling,
+                        snap.remaining * 100.0,
+                        mins_to_reset / 60,
+                        mins_to_reset % 60,
                         snap.weekly_cost,
                         snap.weekly_ceiling,
                         snap.burn_per_hour,
-                        snap.remaining * 100.0
                     );
                     push_update(&handle, &snap);
                     std::thread::sleep(Duration::from_secs(15));
